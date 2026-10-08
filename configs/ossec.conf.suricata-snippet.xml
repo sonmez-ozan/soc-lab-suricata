@@ -1,0 +1,7 @@
+<!-- Added inside <ossec_config> in /var/ossec/etc/ossec.conf on the sensor.
+     Wazuh ships built-in Suricata decoders/rules (rule 86601 for alerts),
+     so no custom decoder is needed. -->
+<localfile>
+  <log_format>json</log_format>
+  <location>/var/log/suricata/eve.json</location>
+</localfile>

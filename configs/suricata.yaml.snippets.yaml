@@ -1,0 +1,19 @@
+# Excerpts from /etc/suricata/suricata.yaml (not the full 93 KB file).
+
+# 1. Sniffing interface (default was eth0)
+#    Changed with:
+#    sudo sed -i '0,/interface: eth0/s//interface: enp0s3/' /etc/suricata/suricata.yaml
+af-packet:
+  - interface: enp0s3
+
+# 2. Rule files. default-rule-path is /var/lib/suricata/rules (managed by
+#    suricata-update), so the custom file is referenced by absolute path and
+#    is never overwritten by rule updates.
+default-rule-path: /var/lib/suricata/rules
+
+rule-files:
+  - suricata.rules
+  - /etc/suricata/rules/local.rules
+
+# 3. HOME_NET (default, already covers the lab: 10.10.10.0/24 is inside 10.0.0.0/8)
+#    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
