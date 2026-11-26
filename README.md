@@ -65,6 +65,8 @@ does not claim the stock rules miss it.
 | Sensor agent | Wazuh agent 008 (`suricata-sensor`), registered under `10.10.10.158` |
 | Rules | ET Open via `suricata-update` (69,072 total, 53,117 enabled) + `local.rules` |
 
+> **Update (November 2026):** This sensor was migrated to a physical Proxmox VE host alongside the rest of the lab. The capture interface is now `ens18` (was `enp0s3` under VirtualBox), and because Proxmox's bridge is a real learning switch rather than VirtualBox's hub-like Internal Network, promiscuous mode alone no longer gave the sensor visibility into other VMs' traffic. See the troubleshooting table below and [soc-lab-infrastructure/docs/06-proxmox-migration.md](https://github.com/sonmez-ozan/soc-lab-infrastructure/blob/main/docs/06-proxmox-migration.md) for the full fix (port mirroring via `tc`, made persistent with a Proxmox hookscript).
+
 Kali and Ubuntu-Victim are dual-homed (native Management-LAN address plus a
 tagged VLAN sub-interface). This project uses the Management-LAN addresses,
 same as the Wazuh project. See [`02-network-design.md`](https://github.com/sonmez-ozan/soc-lab-infrastructure/blob/main/docs/02-network-design.md).
@@ -251,6 +253,11 @@ Kali SSH attempts -> Suricata sid 1000001 -> eve.json -> Wazuh agent 008
 | `wget` failed with "Temporary failure in name resolution" | Most likely pfSense's DNS resolver was not yet answering right after boot (root cause not confirmed). `ping 1.1.1.1` worked, and later the name resolved | Test by IP first to separate routing from DNS, then retry. This one cleared on its own |
 | Wazuh logged "Log file eve.json is duplicated" | `ossec.conf` has **two** `<ossec_config>` sections, and a `sed` insert before every `</ossec_config>` added the block twice | Find the lines with `grep -n`, delete the second copy, restart the agent. Insert into one specific section next time |
 | Dashboard timed out from the Windows host | WireGuard tunnel was not active, so the host had no route to `10.10.10.0/24` | Bring the tunnel up, or use Kali's browser. `curl -kI https://10.10.10.10` from Kali (HTTP 302) proved the dashboard itself was healthy |
+| No alerts for cross-VM traffic after the sensor moved to Proxmox VE | Proxmox's bridge (`vmbr1`) is a real learning switch, unlike VirtualBox's hub-like Internal Network — promiscuous mode on the sniffing NIC no longer guarantees visibility into other hosts' unicast traffic | Mirror the chokepoint (pfSense's LAN-trunk port) onto the sensor's tap with `tc ... mirred`, made persistent with a Proxmox hookscript. Also had to update `suricata.yaml`'s capture interface (`enp0s3` -> `ens18`, Proxmox's guest-NIC naming). Full writeup: [soc-lab-infrastructure/docs/06-proxmox-migration.md](https://github.com/sonmez-ozan/soc-lab-infrastructure/blob/main/docs/06-proxmox-migration.md) |
+
+![The root-cause error: af-packet can't find the stale interface name](screenshots/13-af-packet-interface-error.png)
+![Suricata active and running after the interface-name fix](screenshots/14-service-active-after-fix.png)
+![eve.json showing a real cross-VM HTTP event after the port-mirror fix](screenshots/15-cross-vm-capture-success.png)
 
 ### Notes on reading the evidence
 
